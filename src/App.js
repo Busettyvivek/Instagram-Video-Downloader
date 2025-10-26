@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "./App.css"; // Import the stylesheet
 
 function App() {
   const [url, setUrl] = useState("");
@@ -6,99 +7,87 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // const fetchMedia = async () => {
-  //   setError("");
-  //   setMedia([]);
-  //   if (!url) { setError("Please enter an Instagram post URL"); return; }
-
-  //   setLoading(true);
-  //   try {
-  //     const res = await fetch("https://localhost:5187/api/download", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ url })
-  //     });
-  //     const data = await res.json();
-  //     if (!res.ok) {
-  //       setError(data || data.message || "Server error");
-  //     } else {
-  //       setMedia(data.media || []);
-  //     }
-  //   } catch (e) {
-  //     setError("Failed to contact backend. Is it running?");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const fetchMedia = async () => {
     setError("");
     setMedia([]);
-    if (!url) { setError("Please enter an Instagram post URL"); return; }
+    if (!url) {
+      setError("Please enter an Instagram post URL");
+      return;
+    }
 
     setLoading(true);
     try {
-      // --- FIX 1: Correct URL ---
-      const res = await fetch("http://localhost:5187/api/download", { 
+      const res = await fetch("http://localhost:5187/api/download", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url }),
       });
 
-      // --- FIX 2: Check 'ok' before parsing JSON ---
       if (!res.ok) {
-        // Get the error message as plain text from the backend
-        const errorText = await res.text(); 
-        setError(errorText || "Server error");
+        const errorText = await res.text();
+        setError(errorText || "An unknown server error occurred.");
       } else {
-        // If we are here, res.ok is true, and we expect JSON
         const data = await res.json();
         setMedia(data.media || []);
       }
-
     } catch (e) {
-      // This will now correctly catch network failures or CORS issues
       setError("Failed to contact backend. Is it running? (Check URL/CORS)");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault(); // Prevent page reload on form submission
+    fetchMedia();
+  };
+
   return (
-    <div style={{ maxWidth: 720, margin: "2rem auto", fontFamily: "Arial, sans-serif" }}>
-      <h2>Instagram Media Downloader</h2>
-      <div>
+    <div className="container">
+      <header className="app-header">
+        <h1>Instagram Media Downloader</h1>
+        <p>Paste the URL of a public post to download its images or videos.</p>
+      </header>
+
+      <form className="search-form" onSubmit={handleSubmit}>
         <input
-          style={{ width: "100%", padding: "12px", fontSize: 16 }}
-          placeholder="Paste Instagram post URL (https://www.instagram.com/p/...)"
+          className="url-input"
+          type="url"
+          placeholder="e.g., https://www.instagram.com/p/..."
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          disabled={loading}
         />
-      </div>
-      <div style={{ marginTop: 12 }}>
-        <button onClick={fetchMedia} style={{ padding: "10px 16px" }} disabled={loading}>
+        <button className="fetch-button" type="submit" disabled={loading}>
           {loading ? "Fetching..." : "Fetch Media"}
         </button>
-      </div>
+      </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {loading && <div className="loader"></div>}
+      {error && <p className="error-message">{error}</p>}
 
-      <div style={{ marginTop: 20 }}>
+      <div className="media-grid">
         {media.map((m, idx) => (
-          <div key={idx} style={{ marginBottom: 16, border: "1px solid #ddd", padding: 12 }}>
+          <div key={idx} className="media-card">
             {m.includes(".mp4") ? (
-              <video width="100%" controls src={m} />
+              <video className="media-content" controls src={m} />
             ) : (
-              <img src={m} alt={`media-${idx}`} style={{ maxWidth: "100%" }} />
+              <img
+                className="media-content"
+                src={m}
+                alt={`Downloaded media ${idx + 1}`}
+              />
             )}
-            <div style={{ marginTop: 8 }}>
-              <a 
-  href={`http://localhost:5187/api/download/file?url=${encodeURIComponent(m)}`} 
-  target="_blank" 
-  rel="noreferrer"
->
-  Download
-</a>
-            </div>
+            <a
+              className="download-link"
+              href={`http://localhost:5187/api/download/file?url=${encodeURIComponent(
+                m
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Download
+            </a>
           </div>
         ))}
       </div>
